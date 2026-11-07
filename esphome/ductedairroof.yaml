@@ -1,0 +1,621 @@
+# Board: Generic ESP32 VROOM Board
+# Definition: definitions/boards/generic-esp32/manifest.yaml
+
+# ---------------------------------------------------------------------------
+# Subs as parameters
+# ---------------------------------------------------------------------------
+substitutions:
+
+  reposition_interval: 15s
+  
+  damper1_overdrive: 12s
+  damper1_stdtravel: 8s
+
+  damper2_overdrive: 12s
+  damper2_stdtravel: 8s
+
+  damper3_overdrive: 12s
+  damper3_stdtravel: 8s
+
+  damper4_overdrive: 12s
+  damper4_stdtravel: 8s
+
+  damper5_overdrive: 12s
+  damper5_stdtravel: 8s
+
+# ---------------------------------------------------------------------------
+# Pretty standard ESP config
+# ---------------------------------------------------------------------------
+esphome:
+  name: ductedairroof
+  friendly_name: Ducted Air
+  
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    encryption:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: DuctedAirRoof Fallback Hotspot
+    password: !secret wifi_fallback
+
+captive_portal:
+
+# ---------------------------------------------------------------------------
+# Sensors and read values from home assistant
+# ---------------------------------------------------------------------------
+sensor:
+
+  - platform: homeassistant
+    name: "Room 1 Temperature"
+    id: room1_temperature_via_ha
+    entity_id: sensor.bedroom_temperature
+    internal: true
+
+  - platform: homeassistant
+    name: "Room 2 Temperature"
+    id: room2_temperature_via_ha
+    entity_id: sensor.bedroom_temperature
+    internal: true
+    
+  - platform: homeassistant
+    name: "Room 3 Temperature"
+    id: room3_temperature_via_ha
+    entity_id: sensor.bedroom_temperature
+    internal: true
+    
+  - platform: homeassistant
+    name: "Room 4 Bedroom Temperature"
+    id: room4_temperature_via_ha
+    entity_id: sensor.bedroom_temperature
+    internal: true
+    
+  - platform: homeassistant
+    name: "Room 5 Bedroom Temperature"
+    id: room5_temperature_via_ha
+    entity_id: sensor.bedroom_temperature
+    internal: true
+
+# ---------------------------------------------------------------------------
+# Outputs driving relays
+# These are internal only and not exposed to home assistant
+# ---------------------------------------------------------------------------
+switch:
+
+  ############### Damper 1 Relays ###############
+  - platform: gpio
+    pin: GPIO13
+    id: damper1_open_relay
+    name: "Test Room 1 Open Relay"
+    interlock: [damper1_close_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper1_overdrive}
+      - switch.turn_off: damper1_open_relay
+
+  - platform: gpio
+    pin: GPIO14
+    id: damper1_close_relay
+    name: "Test Room 1 Close Relay"
+    interlock: [damper1_open_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper1_overdrive}
+      - switch.turn_off: damper1_close_relay
+
+  ############### Damper 2 Relays ###############
+  - platform: gpio
+    pin: GPIO27
+    id: damper2_open_relay
+    name: "Test Room 2 Open Relay"
+    interlock: [damper2_close_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper2_overdrive}
+      - switch.turn_off: damper2_open_relay
+        
+  - platform: gpio
+    pin: GPIO26
+    id: damper2_close_relay
+    name: "Test Room 2 Close Relay"
+    interlock: [damper2_open_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper2_overdrive}
+      - switch.turn_off: damper2_close_relay
+
+  ############### Damper 3 Relays ###############
+  - platform: gpio
+    pin: GPIO25
+    id: damper3_open_relay
+    name: "Test Room 3 Open Relay"
+    interlock: [damper3_close_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper3_overdrive}
+      - switch.turn_off: damper3_open_relay
+        
+  - platform: gpio
+    pin: GPIO33
+    id: damper3_close_relay
+    name: "Test Room 3 Close Relay"
+    interlock: [damper3_open_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper3_overdrive}
+      - switch.turn_off: damper3_close_relay
+    
+  ############### Damper 4 Relays ###############
+  - platform: gpio
+    pin: GPIO16
+    id: damper4_open_relay
+    name: "Test Room 4 Open Relay"
+    interlock: [damper4_close_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper4_overdrive}
+      - switch.turn_off: damper4_open_relay
+        
+  - platform: gpio
+    pin: GPIO17
+    id: damper4_close_relay
+    name: "Test Room 4 Close Relay"
+    interlock: [damper4_open_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper4_overdrive}
+      - switch.turn_off: damper4_close_relay
+        
+  ############### Damper 5 Relays ###############
+  - platform: gpio
+    pin: GPIO18
+    id: damper5_open_relay
+    name: "Test Room 5 Open Relay"
+    interlock: [damper5_close_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper5_overdrive}
+      - switch.turn_off: damper5_open_relay
+        
+  - platform: gpio
+    pin: GPIO19
+    id: damper5_close_relay
+    name: "Test Room 5 Close Relay"
+    interlock: [damper5_open_relay]
+    internal: true
+    on_turn_on:
+      - delay: ${damper5_overdrive}
+      - switch.turn_off: damper5_close_relay
+        
+# ---------------------------------------------------------------------------
+# A cover per zone is used as damper controllers
+# These covers are all exposed to home assistant
+# ---------------------------------------------------------------------------
+cover:
+
+  ############### Zone 1 Damper ###############
+  - platform: time_based
+    name: "Zone 1 Damper"
+    id: zone1_damper
+    has_built_in_endstop: true
+    open_duration: ${damper1_stdtravel}
+    close_duration: ${damper1_stdtravel}
+
+    open_action:
+      - switch.turn_on: damper1_open_relay
+    
+    close_action:
+      - switch.turn_on: damper1_close_relay
+
+    stop_action:
+      - switch.turn_off: damper1_open_relay
+      - switch.turn_off: damper1_close_relay
+    assumed_state: true
+
+  ############### Zone 2 Damper ###############
+  - platform: time_based
+    name: "Zone 2 Damper"
+    id: zone2_damper
+    has_built_in_endstop: true
+    open_duration: ${damper2_stdtravel}
+    close_duration: ${damper2_stdtravel}
+
+    open_action:
+      - switch.turn_on: damper2_open_relay
+    
+    close_action:
+      - switch.turn_on: damper2_close_relay
+
+    stop_action:
+      - switch.turn_off: damper2_open_relay
+      - switch.turn_off: damper2_close_relay
+    assumed_state: true
+
+  ############### Zone 3 Damper ###############
+  - platform: time_based
+    name: "Zone 3 Damper"
+    id: zone3_damper
+    has_built_in_endstop: true
+    open_duration: ${damper3_stdtravel}
+    close_duration: ${damper3_stdtravel}
+
+    open_action:
+      - switch.turn_on: damper3_open_relay
+    
+    close_action:
+      - switch.turn_on: damper3_close_relay
+
+    stop_action:
+      - switch.turn_off: damper3_open_relay
+      - switch.turn_off: damper3_close_relay
+    assumed_state: true
+
+  ############### Zone 4 Damper ###############
+  - platform: time_based
+    name: "Zone 4 Damper"
+    id: zone4_damper
+    has_built_in_endstop: true
+    open_duration: ${damper4_stdtravel}
+    close_duration: ${damper4_stdtravel}
+
+    open_action:
+      - switch.turn_on: damper4_open_relay
+    
+    close_action:
+      - switch.turn_on: damper4_close_relay
+
+    stop_action:
+      - switch.turn_off: damper4_open_relay
+      - switch.turn_off: damper4_close_relay
+    assumed_state: true
+    
+  ############### Zone 5 Damper ###############
+  - platform: time_based
+    name: "Zone 5 Damper"
+    id: zone5_damper
+    has_built_in_endstop: true
+    open_duration: ${damper5_stdtravel}
+    close_duration: ${damper5_stdtravel}
+
+    open_action:
+      - switch.turn_on: damper5_open_relay
+    
+    close_action:
+      - switch.turn_on: damper5_close_relay
+
+    stop_action:
+      - switch.turn_off: damper5_open_relay
+      - switch.turn_off: damper5_close_relay
+    assumed_state: true
+    
+# ---------------------------------------------------------------------------
+# CN105 link to the Mitsubishi indoor ac unit
+# ---------------------------------------------------------------------------
+uart:
+  id: cn105_uart
+  tx_pin: GPIO1
+  rx_pin: GPIO3
+  baud_rate: 2400
+  parity: EVEN
+  stop_bits: 1
+mitsubishi_cn105:
+  id: ac_hub
+  uart_id: cn105_uart
+  update_interval: 5s
+  telemetry_request_min_interval: 60s
+  
+# ---------------------------------------------------------------------------
+# A single Ducted AC unit climate along with a
+# template climate per room
+# all the logic to set damper position is completed in 
+# the recalc_dampers function, the climate templates generate the interface
+# ---------------------------------------------------------------------------
+climate:
+
+  ############### Ducted AC Unit ###############
+  - platform: mitsubishi_cn105
+    id: ac_unit
+    name: "Ducted AC Unit"
+    visual:
+      min_temperature: 19
+      max_temperature: 26
+      temperature_step: 0.1
+
+  ############### Room 1 ###############
+  - platform: template
+    name: "Room 1 Ducted Air"
+    id: room1_aircon
+    sensor: room1_temperature_via_ha
+    supported_modes: ["OFF", COOL, HEAT]
+    restore_mode: NO_RESTORE
+    optimistic: true
+    visual:
+      min_temperature: 19°C
+      max_temperature: 26°C
+      temperature_step: 0.1°C
+    initial_state:
+      mode: "OFF"
+      target_temperature: 24.0°C
+
+  ############### Room 2 ###############
+  - platform: template
+    name: "Room 2 Ducted Air"
+    id: room2_aircon
+    sensor: room2_temperature_via_ha
+    supported_modes: ["OFF", COOL, HEAT]
+    restore_mode: NO_RESTORE
+    optimistic: true
+    visual:
+      min_temperature: 19°C
+      max_temperature: 26°C
+      temperature_step: 0.1°C
+    initial_state:
+      mode: "OFF"
+      target_temperature: 24.0°C
+
+  ############### Room 3 ###############
+  - platform: template
+    name: "Room 3 Ducted Air"
+    id: room3_aircon
+    sensor: room3_temperature_via_ha
+    supported_modes: ["OFF", COOL, HEAT]
+    restore_mode: NO_RESTORE
+    optimistic: true
+    visual:
+      min_temperature: 19°C
+      max_temperature: 26°C
+      temperature_step: 0.1°C
+    initial_state:
+      mode: "OFF"
+      target_temperature: 24.0°C
+
+  ############### Room 4 ###############
+  - platform: template
+    name: "Room 4 Ducted Air"
+    id: room4_aircon
+    sensor: room4_temperature_via_ha
+    supported_modes: ["OFF", COOL, HEAT]
+    restore_mode: NO_RESTORE
+    optimistic: true
+    visual:
+      min_temperature: 19°C
+      max_temperature: 26°C
+      temperature_step: 0.1°C
+    initial_state:
+      mode: "OFF"
+      target_temperature: 24.0°C
+
+############### Room 5 ###############
+  - platform: template
+    name: "Room 5 Ducted Air"
+    id: room5_aircon
+    sensor: room5_temperature_via_ha
+    supported_modes: ["OFF", COOL, HEAT]
+    restore_mode: NO_RESTORE
+    optimistic: true
+    visual:
+      min_temperature: 19°C
+      max_temperature: 26°C
+      temperature_step: 0.1°C
+    initial_state:
+      mode: "OFF"
+      target_temperature: 24.0°C
+
+# ---------------------------------------------------------------------------
+# Internal variables for use in scripts
+# ---------------------------------------------------------------------------
+globals:
+  - id: min_damper_position
+    type: float
+    restore_value: no
+    initial_value: "0.25"
+
+# ---------------------------------------------------------------------------
+# Core control logic: pro-rata dampers + winning-zone AC sync, mode-aware
+#
+#   1. Rooms in OFF mode are excluded and fully closed (0%). A room is "valid"
+#      if it is enabled and has a non-NaN setpoint and temperature.
+#   2. Deviation is mode-specific and floored at 0: COOL = current - setpoint,
+#      HEAT = setpoint - current. Satisfied rooms contribute zero demand.
+#   3. The winning zone is the valid room with the largest deviation. With one
+#      enabled room, it wins. With no demand, the previous winner is held.
+#   4. The AC unit is sent the winner's setpoint (clamped to AC limits) and
+#      temperature. With no winner, it reverts to its internal sensor.
+#   5. The winner's damper opens to 100%; other enabled rooms scale pro-rata to
+#      their deviation, floored at MIN_DAMPER_POSITION. A single enabled room
+#      gets 100%. If no rooms are enabled, dampers are left as they are.
+#   6. Only one damper moves per run (the furthest from target, beyond DEADBAND),
+#      and only when no damper is already moving.
+# ---------------------------------------------------------------------------
+script:
+  - id: recalc_dampers
+    mode: restart
+    then:
+      - lambda: |-
+
+          constexpr int NUM_ZONES = 5;
+          constexpr float DEADBAND = 0.02f;
+          constexpr float MOVE_INTERVAL = 0.05f;
+          constexpr float DEMAND_THRESHOLD = 0.01f;
+          constexpr float AC_MIN_TEMP = 19.0f;   // match visual: limits
+          constexpr float AC_MAX_TEMP = 26.0f;
+          constexpr float AC_UPDATE_EPS = 0.05f; // only resend if changed by more than this
+          
+          // Persistent state between runs
+          static int last_winner = -1;
+          static float last_sent_sp = NAN;
+          static float last_sent_temp = NAN;
+          static bool using_internal = false;
+          
+          // Zone objects
+          cover::Cover *dampers[NUM_ZONES] = {
+            id(zone1_damper), id(zone2_damper), id(zone3_damper),
+            id(zone4_damper), id(zone5_damper)
+          };
+          climate::Climate *rooms[NUM_ZONES] = {
+            id(room1_aircon), id(room2_aircon), id(room3_aircon),
+            id(room4_aircon), id(room5_aircon)
+          };
+          
+          // ---- Gather zone data ----
+          climate::ClimateMode modes[NUM_ZONES];
+          float setpoints[NUM_ZONES];
+          float currents[NUM_ZONES];
+          bool valid[NUM_ZONES];       // enabled AND has valid setpoint + temperature
+          int enabled_count = 0;
+          int enabled_index = -1;
+          
+          for (int i = 0; i < NUM_ZONES; i++) {
+            modes[i]     = rooms[i]->mode;
+            setpoints[i] = rooms[i]->target_temperature;
+            currents[i]  = rooms[i]->current_temperature;
+            valid[i] = (modes[i] != climate::CLIMATE_MODE_OFF) && !isnan(setpoints[i]) && !isnan(currents[i]);
+            if (modes[i] != climate::CLIMATE_MODE_OFF) {
+              enabled_count++;
+              enabled_index = i;
+            }
+          }
+          
+          // ---- Demand per zone (only counts while on the wrong side of setpoint) ----
+          float deviation[NUM_ZONES];
+          int max_index = -1;
+          float max_dev = -1.0f;
+          
+          for (int i = 0; i < NUM_ZONES; i++) {
+            deviation[i] = 0.0f;
+            if (!valid[i]) continue;
+          
+            float raw = 0.0f;
+            if (modes[i] == climate::CLIMATE_MODE_COOL) {
+              raw = currents[i] - setpoints[i];
+            } else if (modes[i] == climate::CLIMATE_MODE_HEAT) {
+              raw = setpoints[i] - currents[i];
+            }
+            if (raw > 0.0f) deviation[i] = raw;
+          
+            if (deviation[i] > max_dev) {
+              max_dev = deviation[i];
+              max_index = i;
+            }
+          }
+          
+          // ---- Winning zone selection ----
+          int winning_zone = -1;
+          
+          if (enabled_count == 1) {
+            if (valid[enabled_index]) winning_zone = enabled_index;
+          } else if (enabled_count > 1) {
+            if (max_index >= 0 && max_dev > DEMAND_THRESHOLD) {
+              winning_zone = max_index;                       // worst active room wins
+            } else if (last_winner >= 0 && valid[last_winner]) {
+              winning_zone = last_winner;                     // no demand: hold previous winner (no flapping)
+            } else {
+              for (int i = 0; i < NUM_ZONES; i++) {           // otherwise first valid enabled zone
+                if (valid[i]) { winning_zone = i; break; }
+              }
+            }
+          }
+          
+          // ---- Sync main AC unit ----
+          if (enabled_count == 0 || winning_zone < 0) {
+            // Nothing enabled (or no valid winner data): return AC to its own internal sensor
+            if (!using_internal) {
+              id(ac_unit).clear_remote_temperature();
+              using_internal = true;
+              last_sent_sp = NAN;
+              last_sent_temp = NAN;
+            }
+            last_winner = -1;
+          } else {
+            float sp   = std::max(AC_MIN_TEMP, std::min(AC_MAX_TEMP, setpoints[winning_zone]));
+            float temp = currents[winning_zone];
+          
+            bool sp_changed   = isnan(last_sent_sp)   || fabsf(sp - last_sent_sp)     > AC_UPDATE_EPS;
+            bool temp_changed = isnan(last_sent_temp) || fabsf(temp - last_sent_temp) > AC_UPDATE_EPS;
+          
+            if (using_internal || winning_zone != last_winner || sp_changed || temp_changed) {
+              if (using_internal || winning_zone != last_winner || sp_changed) {
+                id(ac_unit).make_call().set_target_temperature(sp).perform();
+                last_sent_sp = sp;
+              }
+              id(ac_unit).set_remote_temperature(temp);
+              last_sent_temp = temp;
+              using_internal = false;
+            }
+            last_winner = winning_zone;
+          }
+          
+          // ---- Damper control ----
+          // If no zones are enabled, leave dampers as they are
+          if (enabled_count == 0) {
+            return;
+          }
+          
+          // If any damper is currently moving, wait for the next run
+          for (int i = 0; i < NUM_ZONES; i++) {
+            if (dampers[i]->current_operation != cover::COVER_OPERATION_IDLE) {
+              return;
+            }
+          }
+          
+          float positions[NUM_ZONES] = {0.0f, 0.0f, 0.0f, 0.0f, 0.0f};
+          
+          if (enabled_count == 1) {
+            // Single-zone override: full flow
+            positions[enabled_index] = 1.0f;
+          } else {
+            float min_pos = id(min_damper_position);
+          
+            for (int i = 0; i < NUM_ZONES; i++) {
+              if (modes[i] == climate::CLIMATE_MODE_OFF) {
+                positions[i] = 0.0f;                          // disabled: fully closed
+              } else if (max_index < 0 || max_dev <= DEMAND_THRESHOLD) {
+                positions[i] = min_pos;                       // no active demand: floor
+              } else if (i == max_index) {
+                positions[i] = 1.0f;                          // winning zone: fully open
+              } else {
+                positions[i] = min_pos + (1.0f - min_pos) * (deviation[i] / max_dev);
+              }
+          
+              // Round to nearest 5% and guard against fp drift
+              positions[i] = roundf(positions[i] / MOVE_INTERVAL) * MOVE_INTERVAL;
+              positions[i] = std::max(0.0f, std::min(1.0f, positions[i]));
+            }
+          }
+          
+          // ---- Move only ONE damper per run: the one furthest from its target ----
+          int move_index = -1;
+          float largest_error = DEADBAND;
+          
+          for (int i = 0; i < NUM_ZONES; i++) {
+            float error = fabsf(dampers[i]->position - positions[i]);
+            if (error > largest_error) {
+              largest_error = error;
+              move_index = i;
+            }
+          }
+          
+          if (move_index >= 0) {
+            dampers[move_index]->make_call().set_position(positions[move_index]).perform();
+          }
+
+# ---------------------------------------------------------------------------
+# Recompute and position dampers every given internal
+# ---------------------------------------------------------------------------
+interval:
+  - interval: ${reposition_interval}
+    then:
+      - script.execute: recalc_dampers

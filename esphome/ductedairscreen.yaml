@@ -1,0 +1,922 @@
+substitutions:
+  sda_pin_bus: "16"         # I2C Bus A SDA
+  scl_pin_bus: "15"         # I2C BUS A SCL
+  
+  i2s_lrclk_pin: "7"        # I2S LRCLK (Word Select)
+  i2s_bclk_pin: "5"         # I2S BCLK (Bit Clock)
+  i2s_mclk_pin: "4"         # I2S MCLK (Master Clock)
+  i2s_din_pin: "6"          # I2S Data In (Mic)
+  i2s_dout_pin: "8"         # I2S Data Out (Speaker)
+  
+  spi_clk_pin: "12"         # SPI CLK Pin
+  spi_mosi_pin: "11"        # SPI MOSI PIN
+  spi_miso_pin: "13"        # SPI MISO PIN
+  
+  backlight_pin: "45"       # Display backlight
+  
+  speaker_enable_pin: "1"   # Speaker Enable
+  
+  battery_level_pin: "9"    # Battery level
+  
+  rgb_led_pin: "42"    
+
+  ha_climate_room1: climate.garage_ductedairroof_room1_ducted_air
+  ha_climate_room2: climate.garage_ductedairroof_room2_ducted_air
+  ha_climate_room3: climate.garage_ductedairroof_room3_ducted_air
+  ha_climate_room4: climate.garage_ductedairroof_room4_ducted_air
+  ha_climate_room5: climate.garage_ductedairroof_room5_ducted_air
+
+  temp_decrease: -0.1
+  temp_increase: 0.1
+
+  lv_color_red: lv_color_hex(0xa91b0d);
+  lv_color_blue: lv_color_hex(0x007BFF);
+  lv_color_lightgrey: lv_color_hex(0xD3D3D3);
+  lv_color_black: lv_color_hex(0x000000);
+
+esphome:
+  name: ductedairscreen
+  friendly_name: Ducted Air Panel
+  min_version: 2025.11.0
+  name_add_mac_suffix: false
+
+esp32:
+  variant: esp32s3
+  framework:
+    type: esp-idf
+
+logger:
+
+api:
+  encryption:
+    key: !secret api_key
+
+ota:
+  - platform: esphome
+    encryption:
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  use_psram: true # offload network buffers to psram
+  ap:
+    ssid: DuctedAirScreen Fallback Hotspot
+    password: !secret wifi_fallback
+
+# Enable PSRAM 
+psram:
+  mode: octal
+  speed: 80MHz         
+    
+captive_portal:
+
+########################
+# I/O && Bus definitions
+########################
+
+i2c:
+  - id: bus
+    sda: GPIO${sda_pin_bus}
+    scl: GPIO${scl_pin_bus}
+    scan: true
+    
+spi:
+  clk_pin: GPIO${spi_clk_pin}
+  mosi_pin: GPIO${spi_mosi_pin}
+  miso_pin: GPIO${spi_miso_pin}
+
+output:
+  - platform: gpio
+    pin: GPIO${speaker_enable_pin}
+    id: speaker_amp_enable
+    inverted: true
+  - platform: gpio
+    pin: GPIO${backlight_pin}
+    id: backlight
+  - platform: gpio
+    pin: GPIO2
+    id: boiler_output
+
+sensor:
+  - platform: adc
+    pin: GPIO${battery_level_pin}
+    name: "Battery Level"
+    update_interval: 60s
+    
+  - platform: homeassistant
+    id: room1_actual_temp
+    entity_id: ${ha_climate_room1}
+    attribute: current_temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room1_act_deg
+            text: &label_temperature_logic !lambda 'return str_snprintf("%.1f°", 6, x);'
+
+  - platform: homeassistant
+    id: room1_target_temp
+    entity_id: ${ha_climate_room1}
+    attribute: temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room1_set_deg
+            text: *label_temperature_logic
+    
+  - platform: homeassistant
+    id: room2_actual_temp
+    entity_id: ${ha_climate_room2}
+    attribute: current_temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room2_act_deg
+            text: *label_temperature_logic
+
+  - platform: homeassistant
+    id: room2_target_temp
+    entity_id: ${ha_climate_room2}
+    attribute: temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room2_set_deg
+            text: *label_temperature_logic
+    
+  - platform: homeassistant
+    id: room3_actual_temp
+    entity_id: ${ha_climate_room3}
+    attribute: current_temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room3_act_deg
+            text: *label_temperature_logic
+
+  - platform: homeassistant
+    id: room3_target_temp
+    entity_id: ${ha_climate_room3}
+    attribute: temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room3_set_deg
+            text: *label_temperature_logic
+    
+  - platform: homeassistant
+    id: room4_actual_temp
+    entity_id: ${ha_climate_room4}
+    attribute: current_temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room4_act_deg
+            text: *label_temperature_logic
+
+  - platform: homeassistant
+    id: room4_target_temp
+    entity_id: ${ha_climate_room4}
+    attribute: temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room4_set_deg
+            text: *label_temperature_logic
+    
+  - platform: homeassistant
+    id: room5_actual_temp
+    entity_id: ${ha_climate_room5}
+    attribute: current_temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room5_act_deg
+            text: *label_temperature_logic
+
+  - platform: homeassistant
+    id: room5_target_temp
+    entity_id: ${ha_climate_room5}
+    attribute: temperature
+    internal: true
+    on_value:
+      then:
+        - lvgl.label.update:
+            id: room5_set_deg
+            text: *label_temperature_logic
+            
+text_sensor:
+  - platform: homeassistant
+    id: climate1_state
+    entity_id: ${ha_climate_room1}
+    internal: true
+    on_value:
+      then:
+        - lvgl.switch.update:
+            id: room1_on_off
+            state:
+              checked: &button_checked_logic !lambda 'return x != "off";'
+            indicator:
+              checked:
+                bg_color: &switch_color_logic !lambda |-
+                  if (x == "heat") {
+                    return ${lv_color_red}
+                  } else {
+                    return ${lv_color_blue}
+                  }              
+        - lvgl.label.update:
+            id: room1_set_deg
+            text_color: &settext_color_logic !lambda |-
+                  if (x != "off") {
+                    return ${lv_color_black}
+                  } else {
+                    return ${lv_color_lightgrey}
+                  }
+        - lvgl.button.update:
+            id: room1_set_down
+            bg_color: &setbutton_color_logic !lambda |-
+                  if (x == "heat") {
+                    return ${lv_color_red}
+                  } else if (x == "cool") {
+                    return ${lv_color_blue}
+                  } else {
+                    return ${lv_color_lightgrey}
+                  }
+        - lvgl.button.update:
+            id: room1_set_up
+            bg_color: *setbutton_color_logic
+
+  - platform: homeassistant
+    id: climate2_state
+    entity_id: ${ha_climate_room2}
+    internal: true
+    on_value:
+      then:
+        - lvgl.switch.update:
+            id: room2_on_off
+            state:
+              checked: *button_checked_logic
+            indicator:
+              checked:
+                bg_color: *switch_color_logic
+        - lvgl.label.update:
+            id: room2_set_deg
+            text_color: *settext_color_logic
+        - lvgl.button.update:
+            id: room2_set_down
+            bg_color: *setbutton_color_logic
+        - lvgl.button.update:
+            id: room2_set_up
+            bg_color: *setbutton_color_logic
+
+  - platform: homeassistant
+    id: climate3_state
+    entity_id: ${ha_climate_room3}
+    internal: true
+    on_value:
+      then:
+        - lvgl.switch.update:
+            id: room3_on_off
+            state:
+              checked: *button_checked_logic
+            indicator:
+              checked:
+                bg_color: *switch_color_logic
+        - lvgl.label.update:
+            id: room3_set_deg
+            text_color: *settext_color_logic
+        - lvgl.button.update:
+            id: room3_set_down
+            bg_color: *setbutton_color_logic
+        - lvgl.button.update:
+            id: room3_set_up
+            bg_color: *setbutton_color_logic
+
+  - platform: homeassistant
+    id: climate4_state
+    entity_id: ${ha_climate_room4}
+    internal: true
+    on_value:
+      then:
+        - lvgl.switch.update:
+            id: room4_on_off
+            state:
+              checked: *button_checked_logic
+            indicator:
+              checked:
+                bg_color: *switch_color_logic
+        - lvgl.label.update:
+            id: room4_set_deg
+            text_color: *settext_color_logic
+        - lvgl.button.update:
+            id: room4_set_down
+            bg_color: *setbutton_color_logic
+        - lvgl.button.update:
+            id: room4_set_up
+            bg_color: *setbutton_color_logic
+
+  - platform: homeassistant
+    id: climate5_state
+    entity_id: ${ha_climate_room5}
+    internal: true
+    on_value:
+      then:
+        - lvgl.switch.update:
+            id: room5_on_off
+            state:
+              checked: *button_checked_logic
+            indicator:
+              checked:
+                bg_color: *switch_color_logic
+        - lvgl.label.update:
+            id: room5_set_deg
+            text_color: *settext_color_logic
+        - lvgl.button.update:
+            id: room5_set_down
+            bg_color: *setbutton_color_logic
+        - lvgl.button.update:
+            id: room5_set_up
+            bg_color: *setbutton_color_logic
+            
+########################
+# Audio config
+########################
+
+i2s_audio:
+  - id: i2s_audio_bus
+    i2s_lrclk_pin: GPIO${i2s_lrclk_pin}
+    i2s_bclk_pin: GPIO${i2s_bclk_pin}
+    i2s_mclk_pin: GPIO${i2s_mclk_pin}
+
+audio_dac:
+  - platform: es8311
+    i2c_id: bus
+    id: es8311_dac
+    address: 0x18
+    bits_per_sample: 16bit
+    sample_rate: 16000
+    use_mclk: true
+
+speaker:
+  - platform: i2s_audio
+    id: my_speaker
+    i2s_dout_pin: GPIO${i2s_dout_pin}
+    dac_type: external
+    sample_rate: 16000
+    bits_per_sample: 16bit
+    channel: mono
+    audio_dac: es8311_dac
+    buffer_duration: 100ms
+
+########################
+# Display and touchscreen
+########################
+
+display:
+  - platform: mipi_spi
+    model: ili9341
+    dc_pin: GPIO46
+    cs_pin: GPIO10
+    invert_colors: true
+    dimensions:
+      width: 240
+      height: 320
+    auto_clear_enabled: false
+    update_interval: never
+
+touchscreen:
+  - platform: ft63x6
+    interrupt_pin: GPIO17
+    on_touch:
+    # Log out each touch event
+    - lambda: |-
+          ESP_LOGI("cal", "x=%d, y=%d, x_raw=%d, y_raw=%0d",
+              touch.x,
+              touch.y,
+              touch.x_raw,
+              touch.y_raw
+              );
+    # Wake up on touch
+    on_release:
+      - if:
+          condition:
+            lvgl.is_paused:
+          then:
+            - logger.log: "Touch detected while asleep. Waking up display..."
+            - output.turn_on: backlight
+            - lvgl.resume:
+            - lvgl.widget.redraw:
+
+########################
+# RGB LED
+########################
+
+light:
+  - platform: esp32_rmt_led_strip
+    channel_colors: GRB
+    pin: GPIO${rgb_led_pin}
+    num_leds: 1
+    chipset: ws2812
+    name: "Status LED"
+    id: my_status_led
+    
+    # Optional: Add some fun effects
+    effects:
+      - addressable_rainbow:
+          name: Rainbow
+      - pulse:
+          name: Slow Pulse
+          
+########################
+# 5 Aircon Zone Control
+########################
+
+script:
+  - id: change_climate_action
+    mode: parallel
+    parameters:
+      target_temp: float
+      climate_entity: string
+      temp_change: float
+    then:
+      - if:
+          condition:
+            lambda: return !std::isnan(target_temp);
+          then:
+            - homeassistant.action:
+                action: climate.set_temperature
+                data:
+                  entity_id: !lambda return climate_entity;
+                  temperature: !lambda return target_temp + temp_change;
+  
+  - id: zone_on_off_action
+    mode: parallel
+    parameters:
+      turn_on: bool
+      climate_entity: string
+    then:
+      - if:
+          condition:
+            lambda: 'return turn_on;'
+          then:
+            - homeassistant.action:
+                action: climate.set_hvac_mode
+                data:
+                  entity_id: !lambda 'return climate_entity;'
+                  hvac_mode: cool
+          else:
+            - homeassistant.action:
+                action: climate.turn_off
+                data:
+                  entity_id: !lambda 'return climate_entity;'
+                  
+font:
+  - file: "gfonts://Roboto"
+    id: ui_font
+    size: 16
+
+# Very basic demo UI
+lvgl:
+        
+  rotation: 90
+
+  # SLEEP ACTION
+  on_idle:
+    - timeout: 60s
+      then:
+        - output.turn_off: backlight
+        - lvgl.pause:
+
+  widgets:
+    # ----------------------------------------------------
+    # MAIN GRID CONTAINER (Vertical Stack for 5 Zones)
+    # ----------------------------------------------------
+    - obj:
+        id: climate_panel
+        width: 100%
+        height: 100%
+        layout: vertical
+        pad_all: 1
+        
+        widgets:
+          # ====================================================
+          # ROOM 1
+          # ====================================================
+          - obj:
+              width: 100%
+              height: 46
+              layout: horizontal
+              pad_all: 2
+              widgets:
+                - label:
+                    text: "Room 1"
+                    width: 60
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: LEFT
+                - label:
+                    id: room1_act_deg
+                    text: "r1°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - switch:
+                    id: room1_on_off
+                    pad_right: 5
+                    height: 30
+                    width: 45
+                    on_change:
+                      then:
+                        script.execute:
+                          id: zone_on_off_action
+                          turn_on: !lambda 'return x;'
+                          climate_entity: "${ha_climate_room1}"
+                - button:
+                    id: room1_set_up
+                    align: CENTER
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "+"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room1_target_temp).state;'
+                        climate_entity: "${ha_climate_room1}"
+                        temp_change: ${temp_increase}
+                - label:
+                    id: room1_set_deg
+                    text: "sp°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - button:
+                    align: CENTER
+                    id: room1_set_down
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "-"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room1_target_temp).state;'
+                        climate_entity: "${ha_climate_room1}"
+                        temp_change: ${temp_decrease}
+
+          # ====================================================
+          # ROOM 2
+          # ====================================================
+          - obj:
+              width: 100%
+              height: 46
+              layout: horizontal
+              pad_all: 2
+              widgets:
+                - label:
+                    text: "Room 2"
+                    width: 60
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: LEFT
+                - label:
+                    id: room2_act_deg
+                    text: "r2°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - switch:
+                    id: room2_on_off
+                    pad_right: 5
+                    height: 30
+                    width: 45
+                    on_change:
+                      then:
+                        script.execute:
+                          id: zone_on_off_action
+                          turn_on: !lambda 'return x;'
+                          climate_entity: "${ha_climate_room2}"
+                - button:
+                    id: room2_set_up
+                    align: CENTER
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "+"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room2_target_temp).state;'
+                        climate_entity: "${ha_climate_room2}"
+                        temp_change: ${temp_increase}
+                - label:
+                    id: room2_set_deg
+                    text: "sp°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - button:
+                    align: CENTER
+                    id: room2_set_down
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "-"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room2_target_temp).state;'
+                        climate_entity: "${ha_climate_room2}"
+                        temp_change: ${temp_decrease}
+
+          # ====================================================
+          # ROOM 3
+          # ====================================================
+          - obj:
+              width: 100%
+              height: 46
+              layout: horizontal
+              pad_all: 2
+              widgets:
+                - label:
+                    text: "Room 3"
+                    width: 60
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: LEFT
+                - label:
+                    id: room3_act_deg
+                    text: "r3°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - switch:
+                    id: room3_on_off
+                    pad_right: 5
+                    height: 30
+                    width: 45
+                    on_change:
+                      then:
+                        script.execute:
+                          id: zone_on_off_action
+                          turn_on: !lambda 'return x;'
+                          climate_entity: "${ha_climate_room3}"
+                - button:
+                    id: room3_set_up
+                    align: CENTER
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "+"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room3_target_temp).state;'
+                        climate_entity: "${ha_climate_room3}"
+                        temp_change: ${temp_increase}
+                - label:
+                    id: room3_set_deg
+                    text: "sp°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - button:
+                    align: CENTER
+                    id: room3_set_down
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "-"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room3_target_temp).state;'
+                        climate_entity: "${ha_climate_room3}"
+                        temp_change: ${temp_decrease}
+
+          # ====================================================
+          # ROOM 4
+          # ====================================================
+          - obj:
+              width: 100%
+              height: 46
+              layout: horizontal
+              pad_all: 2
+              widgets:
+                - label:
+                    text: "Room 4"
+                    width: 60
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: LEFT
+                - label:
+                    id: room4_act_deg
+                    text: "r4°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - switch:
+                    id: room4_on_off
+                    pad_right: 5
+                    height: 30
+                    width: 45
+                    on_change:
+                      then:
+                        script.execute:
+                          id: zone_on_off_action
+                          turn_on: !lambda 'return x;'
+                          climate_entity: "${ha_climate_room4}"
+                - button:
+                    id: room4_set_up
+                    align: CENTER
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "+"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room4_target_temp).state;'
+                        climate_entity: "${ha_climate_room4}"
+                        temp_change: ${temp_increase}
+                - label:
+                    id: room4_set_deg
+                    text: "sp°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - button:
+                    align: CENTER
+                    id: room4_set_down
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "-"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room4_target_temp).state;'
+                        climate_entity: "${ha_climate_room4}"
+                        temp_change: ${temp_decrease}
+
+          # ====================================================
+          # ROOM 5
+          # ====================================================
+          - obj:
+              width: 100%
+              height: 46
+              layout: horizontal
+              pad_all: 2
+              widgets:
+                - label:
+                    text: "Room 5"
+                    width: 60
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: LEFT
+                - label:
+                    id: room5_act_deg
+                    text: "r5°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - switch:
+                    id: room5_on_off
+                    pad_right: 5
+                    height: 30
+                    width: 45
+                    on_change:
+                      then:
+                        script.execute:
+                          id: zone_on_off_action
+                          turn_on: !lambda 'return x;'
+                          climate_entity: "${ha_climate_room5}"
+                - button:
+                    id: room5_set_up
+                    align: CENTER
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "+"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room5_target_temp).state;'
+                        climate_entity: "${ha_climate_room5}"
+                        temp_change: ${temp_increase}
+                - label:
+                    id: room5_set_deg
+                    text: "sp°"
+                    width: 45
+                    height: 100%
+                    pad_top: 10
+                    text_font: ui_font
+                    align: CENTER
+                    text_align: CENTER
+                - button:
+                    align: CENTER
+                    id: room5_set_down
+                    height: 30
+                    width: 45
+                    widgets:
+                      - label:
+                          text: "-"
+                          align: CENTER
+                          text_align: CENTER
+                    on_click:
+                      script.execute:
+                        id: change_climate_action
+                        target_temp: !lambda 'return id(room5_target_temp).state;'
+                        climate_entity: "${ha_climate_room5}"
+                        temp_change: ${temp_decrease}
+
+                    
+  
+
+
+########################
+# Home Assitant Integrations
+########################
+
+# Expose control of the speaker and backlight
+switch:
+  - platform: output
+    name: "Speaker Amplifier"
+    output: speaker_amp_enable
+    restore_mode: ALWAYS_ON
+  - platform: output
+    name: "Backlight"
+    output: backlight
+    restore_mode: ALWAYS_ON
