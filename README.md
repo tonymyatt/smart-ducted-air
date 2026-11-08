@@ -60,6 +60,7 @@ The dampers use a standard RJ12 (6P6C) connector with the following pin allocati
 
 - [ ] Publish the 3D models
 - [ ] Make a vertical version of the LCD touch screen UI
+- [ ] Cleanup the boilerplate configs of the touch screen ESPHome config
 
 ## Find me
 
