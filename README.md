@@ -1,6 +1,15 @@
 # smart-ducted-air
 
+[![version](https://img.shields.io/github/v/release/tonymyatt/smart-ducted-air?include_prereleases&label=latest&color=slateblue)](https://github.com/tonymyatt/smart-ducted-air/releases/latest)
+[![GitHub Activity](https://img.shields.io/github/commit-activity/y/tonymyatt/smart-ducted-air)](https://github.com/tonymyatt/smart-ducted-air/commits/main)
+[![License](https://img.shields.io/github/license/tonymyatt/smart-ducted-air)](LICENSE)
+![Project Maintenance](https://img.shields.io/badge/maintainer-%40tonymyatt-blue)
+
 ESPHome based smart ducted air conditioning, with per-zone temperature control in Home Assistant.
+
+![In-roof controller](images/Readme.jpg)
+
+*The In-roof controller and replaced wall panel*
 
 ## My goal
 
@@ -25,6 +34,7 @@ I elected not to use PID control for this application. Temperatures change slowl
 | [`esphome/`](esphome/) | ESPHome configs: [`ductedairroof.yaml`](esphome/ductedairroof.yaml) (dampers, CN105, zone logic) and [`ductedairscreen.yaml`](esphome/ductedairscreen.yaml) (touch panel UI) |
 | [`hardware/`](hardware/) | Bill of materials ([`bom.md`](hardware/bom.md)) and wiring diagrams |
 | [`3dmodels/`](3dmodels/) | 3D printed parts (TODO) |
+| [`images/`](images/) | Build photos |
 | [`references/`](references/) | Useful reference material |
 
 ## Damper wiring
@@ -46,6 +56,11 @@ The dampers use a standard RJ12 (6P6C) connector with the following pin allocati
 5. In `ductedairscreen.yaml`, update the `ha_climate_roomN` substitutions if your device name differs.
 6. Flash `ductedairroof.yaml` to the ESP32 and `ductedairscreen.yaml` to the ESP32-S3 touch screen.
 
+## TODO
+
+- [ ] Publish the 3D models
+- [ ] Make a vertical version of the LCD touch screen UI
+
 ## Find me
 
 - MakerWorld: [@tonymyatt](https://makerworld.com/en/@tonymyatt)
@@ -53,4 +68,4 @@ The dampers use a standard RJ12 (6P6C) connector with the following pin allocati
 
 ## Licence
 
-Apache License 2.0. See [LICENSE](LICENSE).
+MIT License. See [LICENSE](LICENSE).
