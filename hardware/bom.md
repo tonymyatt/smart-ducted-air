@@ -16,7 +16,7 @@ https://amzn.asia/d/0abh9HaZ (2-pack)
 
 
 
-1 x AC to DC 24V 1A Power Supply
+1 x AC24V 1A Power Supply
 
 https://amzn.asia/d/0hwIHo6X
 
